@@ -52,3 +52,14 @@ There are 3 ways to do so:
 
 #### Can a container be renamed?
 Yes, using docker rename
+
+#### Is it possible to assign labels to a container?
+Yes.
+```
+docker run -d -l owner=alice nginx
+```
+And retrieving the information with:
+```
+docker inspect $(docker ps -q) --format 'OWNER={{.Config.Labels.owner}}'
+docker ps --filter label=owner=alice
+```
