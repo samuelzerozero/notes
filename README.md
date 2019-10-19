@@ -35,3 +35,15 @@ Overall it seems like it's going to be an issue only where big files are modifie
 
 #### Why to use JSON format when defining RUN steps?
 Not Using JSON syntax in the Dockerfile will create command wrapped into /bin/sh -c "<CMD>". That means that sh doesn't need to be installed to run the command also.
+
+#### What's the difference between ENTRYPOINT and CMD?
+**CMD** is the command that will be executed by default
+**ENTRYPOINT** is the command that will be executed as entrypoint, so all the arguments will be appended to end to the entrypoint
+In a Dockerfile, the latest is the one that takes precendence. 
+
+#### Can I use ENTRYPOINT and CMD in conjunction?
+Yes, the CMD will act as default parameters for the command defined for ENTRYPOINT
+
+
+
+
