@@ -14,11 +14,11 @@ No. Those will be lost only if the container is removed (i.e. -rm)
 It depends. For each layer uses a copy-on-write is used instead of regular copy. If the container tryies to write into some layer, a new one will be copied and the write will end up there. The most efficient container is the one that minimise that.
 
 #### How to minimise the copy-on-write?
+The default driver is aufs, that is copying *only* the file that gets modified. The file is searched from the lastest layer going backward and copied into the writing layer (hence doesn't need to be searched again). If modifying big amount of data:
 1. tmp directory with no persistance using tmpfs
 ```
 docker run --tmpfs /tmp -d java-img
 ```
-2. Create a thin layer with only the creation of that empty directory (?)
 3. Mount a durable volume 
 ```
 docker run -v tmp-files:/tmp -d java-img
