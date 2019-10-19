@@ -33,4 +33,5 @@ docker diff <yourContainerId>
 ```
 Overall it seems like it's going to be an issue only where big files are modified.
 
-
+#### Why to use JSON format when defining RUN steps?
+Not Using JSON syntax in the Dockerfile will create command wrapped into /bin/sh -c "<CMD>"
