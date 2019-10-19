@@ -44,6 +44,11 @@ In a Dockerfile, the latest is the one that takes precendence.
 #### Can I use ENTRYPOINT and CMD in conjunction?
 Yes, the CMD will act as default parameters for the command defined for ENTRYPOINT
 
+#### Is it possible to collapse layers?
+There are 3 ways to do so:
+1. Using multi-stage builds
+2. Concatenating commands
+3. Squashing layers with docker image build --squash (expensive computationally + lost readibility)
 
 
 
