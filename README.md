@@ -55,4 +55,4 @@ docker ps --filter label=owner=alice
 3. Create an image with the crashed container and experiment a differrent entrypoint ```docker commit <container_id> debugimage```
 4. Export the whole volume of the container ```docker export <container_id> | tar tv```
 #### What's the difference between EXPOSE and p?
-EXPOSE 8998/tcp in the Dockerfile or as a argument --expose for the run command to flag what the cointaner will expose. That won't expose directly to the host container. Using -P (--publish-all) on run, the exposed ports will be mapped with a random port on the host machine. Using p, implicitly the container will expose the port and bind to the specified target host.
+EXPOSE 8998/tcp in the Dockerfile or as a argument --expose for the run command to flag what the cointaner will expose. That won't expose directly to the host container. Using -P (--publish-all) on run, the exposed ports will be mapped with a random port on the host machine. Using *-p port-on-host:port-on-container*, implicitly the container will expose the port and bind to the specified target host.
