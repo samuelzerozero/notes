@@ -50,5 +50,5 @@ There are 3 ways to do so:
 2. Concatenating commands
 3. Squashing layers with docker image build --squash (expensive computationally + lost readibility)
 
-
-
+#### Can a container be renamed?
+Yes, using docker rename
