@@ -23,3 +23,7 @@ docker run --tmpfs /tmp -d java-img
 ```
 docker run -v tmp-files:/tmp -d java-img
 ```
+To inspect what a container is doing at running time is useful to use the command diff
+```
+docker diff <yourContainerId>
+```
