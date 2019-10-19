@@ -9,3 +9,6 @@ Docker daemon runs as a root user, since he’s controlling network, cgroups, fi
 
 #### If I stop a running container and then start again, do we loose the changes on the fs?
 No. Those will be lost only if the container is removed (i.e. -rm)
+
+#### How much size is used when creating a container from an image?
+It depends. To optimize container boot time, copy-on-write is used instead of regular copy.
