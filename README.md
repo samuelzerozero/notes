@@ -27,3 +27,4 @@ To inspect what a container is doing at running time is useful to use the comman
 ```
 docker diff <yourContainerId>
 ```
+Overall it seems like it's going to be an issue only where big files are modified
