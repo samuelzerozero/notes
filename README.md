@@ -15,11 +15,11 @@ It depends. For each layer uses a copy-on-write is used instead of regular copy.
 
 #### How to minimise the copy-on-write?
 1. tmp directory with no persistance using tmpfs
-'''
+```
 docker run --tmpfs /tmp -d java-img
-'''
+```
 2. Create a thin layer with only the creation of that empty directory (?)
 3. Mount a durable volume 
-'''
+```
 docker run -v tmp-files:/tmp -d java-img
-'''
+```
