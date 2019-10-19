@@ -15,22 +15,11 @@ It depends. For each layer uses a copy-on-write is used instead of regular copy.
 
 #### How to minimise the copy-on-write?
 The default driver is aufs, that is copying **only** the file that gets modified. The file is searched from the lastest layer going backward and copied into the writing layer (hence doesn't need to be searched again). If modifying big amount of data:
-1. tmp directory with no persistance using tmpfs
-```
-docker run --tmpfs /tmp -d java-img
-```
-2. Mount a durable volume 
-```
-docker run -v tmp-files:/tmp -d java-img
-```
-3. Start the container with the read-only option **(that is great for security also)**
-```
-docker run -d --read-only image
-```
+1. tmp directory with no persistance using tmpfs ```docker run --tmpfs /tmp -d java-img```
+2. Mount a durable volume ```docker run -v tmp-files:/tmp -d java-img```
+3. Start the container with the read-only option **(that is great for security also)** ```docker run -d --read-only image```
 To inspect what a container is doing at running time is useful to use the command diff
-```
-docker diff <yourContainerId>
-```
+``` docker diff <yourContainerId>```
 Overall it seems like it's going to be an issue only where big files are modified.
 
 #### Why to use JSON format when defining RUN steps?
@@ -54,12 +43,14 @@ There are 3 ways to do so:
 Yes, using docker rename
 
 #### Is it possible to assign labels to a container?
-Yes.
-```
-docker run -d -l owner=alice nginx
-```
+Yes: ```docker run -d -l owner=alice nginx```
 And retrieving the information with:
 ```
 docker inspect $(docker ps -q) --format 'OWNER={{.Config.Labels.owner}}'
 docker ps --filter label=owner=alice
 ```
+#### How to inspect a stopped/crashed container?
+1. See what are the files that changed: ``` docker diff <container_id> ```
+2. Copy the file on the host machine ```docker cp <container_id>:/var/log/nginx/error.log .```
+3. Create an image with the crashed container and experiment a differrent entrypoint ```docker commit <container_id> debugimage```
+4. Export the whole volume of the container ```docker export <container_id> | tar tv```
