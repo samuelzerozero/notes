@@ -125,3 +125,19 @@ Init containers are typically added to pods to achieve the following:
 #### Where are the init containers defined?
 In a pod manifest, init containers are defined in the initContainers. They will run in sequence and then all the other will starts, if successful
 
+#### How is possible to delete object?
+Deleting a pod will terminate its containers and remove them from the node. Deleting a Deployment object causes the deletion of its pods, whereas deleting a LoadBalancer-typed Service deprovisions the load balancer if one was provisioned.
+```
+$ kubectl delete po kubia <- by name
+$ kubectl delete -f kubia-ssl.yaml <- by file
+$ kubectl delete -f kubia.yaml,kubia-ssl.yaml <- multiple files
+$ kubectl delete -f Chapter05/ <- all dir
+```
+By deleting a pod, you state that you no longer want the pod or its containers to exist. The Kubelet shuts down the pod’s containers, removes all associated resources, such as log files, and notifies the API server after this process is complete. The Pod object is then removed.
+By default, the kubectl delete command waits until the object no longer exists. To skip the wait, run the command with the --wait=false option
+If put autoscaling, those pods will reappear (if defined deployments)
+```
+$ kubectl delete svc --all (or name)
+$ kubectl delete deploy --all (or name)
+$ kubectl delete all --all
+```
