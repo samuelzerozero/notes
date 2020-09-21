@@ -141,3 +141,23 @@ $ kubectl delete svc --all (or name)
 $ kubectl delete deploy --all (or name)
 $ kubectl delete all --all
 ```
+#### What are the pod phases?
+Phase | Description
+------------ | -------------
+Pending | After you create the Pod object, this is its initial phase. Until the pod is scheduled to a node and the images of its containers are pulled and started, it remains in this phase.
+Running | At least one of the pod’s containers is running.
+Succeeded | Pods that aren’t intended to run indefinitely are marked as Succeeded when all their containers complete successfully.
+Failed |  When a pod is not configured to run indefinitely and at least one of its containers terminates unsuccessfully, the pod is marked as Failed.
+Unknown | The state of the pod is unknown because the Kubelet has stopped reporting communicating with the API server. Possibly the worker node has failed or has disconnected from the network.
+```
+$ kubectl describe po kubia | grep Conditions: -A5
+```
+#### What are the container states?
+
+Container State | Description
+------------ | -------------
+Waiting | The container is waiting to be started. The reason and message fields indicate why the container is in this state.
+Running | The container has been created and processes are running in it. The startedAt field indicates the time at which this container was started.
+Terminated | The processes that had been running in the container have terminated. The startedAt and finishedAt fields indicate when the container was started and when it terminated. The exit code with which the main process terminated is in the exitCode field.
+Unknown | The state of the container couldn’t be determined.
+
