@@ -57,3 +57,18 @@ It depends. Every provider has its own way. On minikube there's no external load
 ```
 $ kubectl api-resources
 ```
+
+#### How is possible to explore the manifest of a node?
+```
+$ kubectl get node <node-name> -o yaml
+```
+
+#### Can two containers in the same pod expose the same port?
+No, because containers in pods share the same Linux namespace. They can communicate through the loopback device (127.0.0.1). All the containers in a pod see also the same system hostname. 
+
+#### What are sidecar containers?
+Sidecar containers are "support" containers, that add extra functionalities to the main container and run in the same pod. An example is a reverse proxy, since that just enhance the functionality withouth modifying the original container. Other examples are log rotators and collectors, data processors, communication adapters, ...
+
+
+
+
