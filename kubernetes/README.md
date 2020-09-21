@@ -83,3 +83,33 @@ Otherwise is possible to use a **port-forward proxy**
 $ kubectl port-forward kubia 8080 <- Forwarding from 127.0.0.1:8080 -> 8080
 $ curl localhost:8080
 ```
+
+#### How to read the logs?
+If the output is on stdout and stderr the logs are saved in /var/log/containers
+```
+$kubectl logs <nameofPod>
+--follow/f <- to follow the log
+ –-timestamps=true <- to allow timestamps to be printed
+```
+
+#### Is possible to copy files from local to a pod and vice versa?
+```
+$ kubectl cp kubia:/etc/hosts /tmp/kubia-hosts
+$ kubectl cp /path/to/local/file kubia:path/in/container
+```
+
+#### Is possible to run a command on a running pod container?
+```
+$ kubectl exec kubia -- ps aux
+$ kubectl exec kubia -- curl -s localhost:8080
+$ kubectl exec -it kubia -- bash
+```
+with -- to delimt the arguments to be run inside the container
+
+#### Is possible to run a command on a specific container in a pod?
+```
+$ kubectl logs kubia-ssl -c kubia
+$ kubectl logs kubia-ssl -c envoy
+$ kubectl logs kubia-ssl --all-containers
+```
+If not specified, the command defaults on the first container in the manifest
