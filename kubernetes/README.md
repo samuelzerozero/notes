@@ -35,3 +35,25 @@ and get the token with
 ```
 $ kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | awk '/^deployment-controller-token-/{print $1}') | awk '$1=="token:"{print $2}'
 ```
+
+#### How to quickly create a deployment object via command line?
+You now have a running application that is represented by a Deployment and exposed to the world by a Service object. Then magically scaled-out:
+```
+$ kubectl create deployment kubia --image=luksa/kubia:1.0 <- create deployment object
+$ kubectl get deployments
+$ kubectl get pods
+$ kubectl describe pod
+$ kubectl expose deployment kubia --type=LoadBalancer --port 8080 <- create service object
+$ kubectl get svc
+$ kubectl scale deployment kubia --replicas=3 <- modify the deployment object
+$ kubectl get pods -o wide <- extra info (worker nodes details)
+$ curl localhost:8080 <- will give extra 2 answers with the pods deployed
+```
+
+#### How are the load balancers (service) deployed?
+It depends. Every provider has its own way. On minikube there's no external load balancer. In GKE for example, there is a load balancer per node (That will dispatch the service withing the pods in the node) and one per cluster, that will dispatch on the different nodes.
+
+#### How to get all the type of objects and abbreaviations via command line?
+```
+$ kubectl api-resources
+```
