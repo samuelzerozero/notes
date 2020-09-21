@@ -161,3 +161,31 @@ Running | The container has been created and processes are running in it. The st
 Terminated | The processes that had been running in the container have terminated. The startedAt and finishedAt fields indicate when the container was started and when it terminated. The exit code with which the main process terminated is in the exitCode field.
 Unknown | The state of the container couldn’t be determined.
 
+#### What are the possible restart strategies for a container?
+Restart Policy | Description
+------------ | -------------
+Always | Container is restarted regardless of the exit code the process in the container terminates with. This is the default restart policy.
+OnFailure | The container is restarted only if the process terminates with a non-zero exit code, which by convention indicates failure.
+Never | The container is never restarted - not even when it fails.
+
+Surprisingly, the restart policy is configured at the pod level and applies to all its containers. It can’t be configured for each container individually.
+
+The default value is Always.
+
+#### Is it possible to define the status of liveness for a container? And for readiness?
+Yes for both, that's possible defining a) An HTTP GET probe b) A TCP Socket probe c) An Exec probe
+It's even possible do define a startup probe, that will run until gets healthy for the first time.
+
+#### Is it possible to hook actions after the start and before the shutdown?
+Yes, with *lifecycle: postStart or preStop
+
+#### In the initialization phase of a pod, what are the image pull policies?
+Image pull policy | Description
+------------ | -------------
+Not specified | If the imagePullPolicy is not explicitly specified, it defaults to Always if the :latest tag is used in the image. For other image tags, it defaults to IfNotPresent.
+Always | The image is pulled every time the container is (re)started. If the locally cached image matches the one in the registry, it is not downloaded again, but the registry still needs to be contacted.
+Never | The container image is never pulled from the registry. It must exist on the worker node beforehand. Either it was stored locally when another container with the same image was deployed, or it was built on the node itself, or simply downloaded by someone or something else.
+IfNotPresent | Image is pulled if it is not already present on the worker node. This ensures that the image is only pulled the first time it’s required.
+
+#### What is a grece period when in the termination phase of a container?
+That's the time where the container will upgrade from SIGTERM to SIGKILL
