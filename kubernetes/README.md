@@ -69,6 +69,17 @@ No, because containers in pods share the same Linux namespace. They can communic
 #### What are sidecar containers?
 Sidecar containers are "support" containers, that add extra functionalities to the main container and run in the same pod. An example is a reverse proxy, since that just enhance the functionality withouth modifying the original container. Other examples are log rotators and collectors, data processors, communication adapters, ...
 
+#### Why specify container ports in pod definitions?
+It's purely informative. If the container accepts connections through a port bound to its IP address, anyone can connect to it, even if the port isn’t explicitly specified in the pod spec or if you specify an incorrect port number.
 
-
-
+#### How do you test a connection within a pod?
+It's possible to create a one off pod that curl that specific api on a port, for example
+```
+$ kubectl get pods -o wide <- get the ip of the pod
+$ kubectl run --image=tutum/curl -it --restart=Never --rm client-pod curl <ipOfThePod>:8080
+```
+Otherwise is possible to use a **port-forward proxy** 
+```
+$ kubectl port-forward kubia 8080 <- Forwarding from 127.0.0.1:8080 -> 8080
+$ curl localhost:8080
+```
