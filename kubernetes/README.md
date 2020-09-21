@@ -113,3 +113,15 @@ $ kubectl logs kubia-ssl -c envoy
 $ kubectl logs kubia-ssl --all-containers
 ```
 If not specified, the command defaults on the first container in the manifest
+
+#### What is an init container?
+A pod manifest can specify a list of containers to run when the pod starts and before the pod’s normal containers are started.
+Init containers are typically added to pods to achieve the following:
+• Initialize files in the volumes used by the pod’s main containers. This includes retrieving certificates and private keys used by the main container from secure certificate stores, generating config files, downloading data, and so on.
+• Initialize the pod’s networking system. Because all containers of the pod share the same network namespaces, and thus the network interfaces and configuration, any changes made to it by an init container also affect the main container.
+• Delay the start of the pod’s main containers until a precondition is met. For example, if the main container relies on another service being available before the container is started, an init container can block until this service is ready.
+• Notify an external service that the pod is about to start running. In special cases where an external system must be notified when a new instance of the application is started, an init container can be used to deliver this notification.
+
+#### Where are the init containers defined?
+In a pod manifest, init containers are defined in the initContainers. They will run in sequence and then all the other will starts, if successful
+
