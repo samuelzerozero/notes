@@ -336,5 +336,10 @@ you can find for example KUBIA_SERVICE_PORT and KUBIA_SERVICE_HOST
 Otherwise there's an internal dns-server where everything gets an ip to lookup. To get a service  
 ```
 $ kubectl exec pod/kubia-9247m -- curl -s  http://kubia.default.svc.cluster.local:8001
+$ kubectl exec pod/kubia-9247m -- curl -s  http://kubia:8001
 ```
 where *nameOfService.namespace*.svc.cluster.local
+in reality can lose the last part *svc.cluster.local* and even the *namespace* if it's assuming it's in the same. So the final is *kubia*
+
+#### Why Ping doesn't work on a service IP?
+Because that's a vitual IP.
