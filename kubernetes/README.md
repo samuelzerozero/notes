@@ -6,6 +6,8 @@ This is a list of kubernetes notes collected while try to figure out stuff about
 **[Pod and Containers Lifecycle](#pod-and-containers-lifecycle)**<br>
 **[ReplicationController ReplicaSet DeamonSet](#replicationcontroller-replicaset-deamonset)**<br>
 **[Jobs](#jobs)**<br>
+**[Services](#services)**<br>
+
 
 
 ## Setup
@@ -280,7 +282,56 @@ Not really, but using startingDeadlineSeconds the job will be marked as fail aft
 #### Is it guaranteed that a job is run once at time?
 In normal circumstances, a CronJob always creates only a single Job for each execution configured in the schedule, but it may happen that two Jobs are created at the same time, or none at all. To combat the first problem, your jobs should be idempo- tent (running them multiple times instead of once shouldn’t lead to unwanted results). For the second problem, make sure that the next job run performs any work that should have been done by the previous (missed) run.
 
+## Services
 
+#### Why Services are needed?
+Pods are ephemeral, Kubernetes assigns an IP address to a pod after the pod has been scheduled to a node and before it’s started and Horizontal scaling means multiple pods may provide the same service. Not knowing the configuration, services aim to provide one single IP address to serve the service as a single point of entry.
+The primary purpose of services is exposing groups of pods to other pods in the cluster. But can be exposed externally also.
+
+#### Can I connect to a load balancer with forward-proxy? 
+It doesn't seems to work with docker for desktop. Removing that automatically will deploy an external one load balancing correctly. If used will just get stuck to a single pod.
+
+#### How can I test that the service works?
+a)Create a pod that will ping and then inspect the log or b) ssh into a kubernettes node or c) exec from a running node, for example  
+Get the IP of the service with
+```
+$ kubectl get svc
+```
+Once recorded exec on a pod (will pick the first container if not specified)
+```
+$ kubectl exec pod/kubia-jwd7f -- curl -s http://<ipOfService>:8001
+```
+
+#### How to stick the request per client?
+With session-affinity just adding sessionAffinity: ClientIP
+
+#### Why there's no session-affinity for cookies session?
+Kubernetes supports only two types of service session affinity: None and ClientIP. You may be surprised it doesn’t have a cookie-based session affinity option, but you need to understand that Kubernetes services don’t operate at the HTTP level. Services deal with TCP and UDP packets and don’t care about the payload they carry.
+
+#### How is possible to map a port from service to container without knowing the port number?
+Can use *named ports*. If in the Pods the contaniner port is declared (you don't really need to, it's just informative) then the service can refer 
+```
+spec:
+    ports:
+    - name: http
+      port: 80
+      targetPort: http
+```
+instead of 
+```
+spec: 
+    ports:
+    - name: http 
+      port: 80
+      targetPort: 8080
+```
+
+#### How do you get the ip address and port of a service from a pod?
+Every service gets injected environment variables with the naming underscore form. Executing
+```
+$ kubectl exec pod/kubia-9247m env
+```
+you can find for example KUBIA_SERVICE_PORT and KUBIA_SERVICE_HOST
 
 
 
