@@ -337,4 +337,4 @@ Otherwise there's an internal dns-server where everything gets an ip to lookup. 
 ```
 $ kubectl exec pod/kubia-9247m -- curl -s  http://kubia.default.svc.cluster.local:8001
 ```
-where *<nameOfService>.<namespace>.svc.cluster.local*
+where *nameOfService.namespace*.svc.cluster.local
