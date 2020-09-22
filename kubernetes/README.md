@@ -1,6 +1,8 @@
 # Kubernetes Notes
 This is a list of kubernetes notes collected while try to figure out stuff about the subject
 
+## Setup
+
 #### What's the easiest way to install k8s on a local machine?
 Use docker for desktop. You can find "enable kubernetes" on the options. That will launch a linux VM and install Control Plane, Kubelet, Docker daemon
 
@@ -35,6 +37,8 @@ and get the token with
 ```
 $ kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | awk '/^deployment-controller-token-/{print $1}') | awk '$1=="token:"{print $2}'
 ```
+
+## Kubectl commands and Containers
 
 #### How to quickly create a deployment object via command line?
 You now have a running application that is represented by a Deployment and exposed to the world by a Service object. Then magically scaled-out:
@@ -141,6 +145,9 @@ $ kubectl delete svc --all (or name)
 $ kubectl delete deploy --all (or name)
 $ kubectl delete all --all
 ```
+
+## Pod and Containers Lifecycle
+
 #### What are the pod phases?
 Phase | Description
 ------------ | -------------
@@ -192,6 +199,8 @@ That's the time where the container will upgrade from SIGTERM to SIGKILL
 
 #### What means if a liveness or readiness probe fails?
 For a liveness probe, giving up means the pod will be restarted. For a readiness probe, giving up means not routing traffic to the pod, but the pod is not restarted. Liveness and readiness probes can be used in conjunction. A probe has a number of configuration parameters to control its behaviour, like how often to execute the probe; how long to wait after starting the container to initiate the probe; the number of seconds after which the probe is considered failed; and how many times the probe can fail before giving up.
+
+## ReplicationController, ReplicaSet, DeamonSet
 
 #### What does happen to a pod manually created if a node where is deployed fails? 
 It will disappear. In order to be managed you need to create Replication Controllers or deployments.
