@@ -365,4 +365,7 @@ spec:
 with local fqdn you can reach curling external-service
 
 #### How to expose a service externally?
+Setting the service type to *NodePort*, *LoadBalancer* or creating an *Ingress* resource
 
+#### What is the differece between ClusterIP and NodePort?
+ClusterIP 
