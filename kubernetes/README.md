@@ -327,11 +327,14 @@ spec:
 ```
 
 #### How do you get the ip address and port of a service from a pod?
+There are 2 ways:
 Every service gets injected environment variables with the naming underscore form. Executing
 ```
 $ kubectl exec pod/kubia-9247m env
 ```
 you can find for example KUBIA_SERVICE_PORT and KUBIA_SERVICE_HOST
-
-
-
+Otherwise there's an internal dns-server where everything gets an ip to lookup. To get a service  
+```
+$ kubectl exec pod/kubia-9247m -- curl -s  http://kubia.default.svc.cluster.local:8001
+```
+where *<nameOfService>.<namespace>.svc.cluster.local*
