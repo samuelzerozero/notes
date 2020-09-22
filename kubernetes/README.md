@@ -1,6 +1,13 @@
 # Kubernetes Notes
 This is a list of kubernetes notes collected while try to figure out stuff about the subject
 
+### Table of Contents
+**[Setup](#setup)**<br>
+**[Pod and Containers Lifecycle](#pod-and-containers-lifecycle)**<br>
+**[ReplicationController, ReplicaSet, DeamonSet](#setup)**<br>
+**[Jobs](#jobs)**<br>
+
+
 ## Setup
 
 #### What's the easiest way to install k8s on a local machine?
