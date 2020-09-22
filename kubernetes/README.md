@@ -196,28 +196,50 @@ For a liveness probe, giving up means the pod will be restarted. For a readiness
 #### What does happen to a pod manually created if a node where is deployed fails? 
 It will disappear. In order to be managed you need to create Replication Controllers or deployments.
 
-#### What does happen when a pod label is changed if managed by a replication controller?
+#### What does happen when a pod label is changed if managed by a replication controller? DEPRECATED
 It will end up being manually managed, hence the controller will spin automatically another one with the right label.
 ```
 $ kubectl get pods --show-labels
 $ kubectl label pod <nameOfPOd> type=special <- extra label, don't do anything
 $ kubectl label pod <nameOfPOd> app=foo --overwrite <- overwrite selector, pod disconnected from controller and created a new pod
 ```
-#### What does happen when a replication controller change the selector?
+#### What does happen when a replication controller change the selector? DEPRECATED
 if there's no pod with labels that matches the new selector, it will recreate pods from scratch
 
-#### What does happen when a replication controller change the template?
+#### What does happen when a replication controller change the template? DEPRECATED
 That will only be used for new span pods, won't modify existing.
 
-#### How can scale a replication controller?
+#### How can scale a replication controller? DEPRECATED
 via command line 
 ```
 $ kubectl scale rc kubia --replicas=3
 ```
 or changing and applying the *replicas* in *replicas* and apply.
 
-#### What happens when deleted a replication controller?
+#### What happens when deleted a replication controller? DEPRECATED
 By default all the pods will get deleted also. To avoid that it's possible to add the flag
 ```
 $ kubectl delete rc kubia --cascade=false
 ```
+
+#### What's the difference between a ReplicaSet to a ReplicationController?
+ReplicaSet can match more complicated labels (matchExpressions), and those are used by deployments. ReplicationControllers are simpler and deprecated.
+
+#### What is a DeamonSet?
+It's a special ReplicaSet but it runs one pod matching the label for each node (skips k8s scheduler).
+
+
+#### Does a DeamonSet run on each node?
+By default, yes. However you can specify a node selector.
+
+#### Is there a way to run a finite job?
+Yes, with Job. That can be defined like any other template.
+
+#### Does a job in a pod gets deleted if that finishes?
+The pod gets marked as Completed and the ready field is 0/1. The pod will be deleted when you delete it or the Job that created it.
+
+#### What are the restartPolicy available to Jobs?
+restart policy to either OnFailure or Never. Always doesn't make sense in this context and it's forbidden.
+
+
+
