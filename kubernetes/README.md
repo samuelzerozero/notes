@@ -241,5 +241,28 @@ The pod gets marked as Completed and the ready field is 0/1. The pod will be del
 #### What are the restartPolicy available to Jobs?
 restart policy to either OnFailure or Never. Always doesn't make sense in this context and it's forbidden.
 
+#### Is it possible to run multiple instances of the job?
+Yes, adding completions: 5 (numbero of runs)
+
+#### Is it possible to run the same job in parallel?
+Yes, adding parallelism: 2 (number of threads)
+
+#### Can increase a job parallelism on fly?
+Yes, just change parallelism to a higher level. That works similar to ReplicaSet
+
+#### Is possible to limit the duration of a job?
+Yes, with activeDeadlineSeconds
+
+#### How to schedule a job in the future, or periodically?
+Using CronJob specifying syntax like linux cron.
+
+#### For time sensitive jobs, can I force start?
+Not really, but using startingDeadlineSeconds the job will be marked as fail after the seconds passed.
+
+#### Is it guaranteed that a job is run once at time?
+In normal circumstances, a CronJob always creates only a single Job for each execution configured in the schedule, but it may happen that two Jobs are created at the same time, or none at all. To combat the first problem, your jobs should be idempo- tent (running them multiple times instead of once shouldn’t lead to unwanted results). For the second problem, make sure that the next job run performs any work that should have been done by the previous (missed) run.
+
+
+
 
 
