@@ -7,7 +7,7 @@ This is a list of kubernetes notes collected while try to figure out stuff about
 **[ReplicationController ReplicaSet DeamonSet](#replicationcontroller-replicaset-deamonset)**<br>
 **[Jobs](#jobs)**<br>
 **[Services](#services)**<br>
-
+**[Volumes](#volumes)**<br>
 
 
 ## Setup
@@ -368,4 +368,86 @@ with local fqdn you can reach curling external-service
 Setting the service type to *NodePort*, *LoadBalancer* or creating an *Ingress* resource
 
 #### What is the differece between ClusterIP and NodePort?
-ClusterIP 
+ClusterIP exposes a service and a port on a constant internal IP. 
+Nodeport instead opens and reserve that specific port for each node IP.
+
+#### If connecting on a node that exposes a service Nodeport, does the pod servicing is going to be on the node itself?
+It's not guaranteed. It works like a redirect on a ClusterIP really.
+```
+spec:
+type: NodePort 
+ports:
+- port: 80
+    targetPort: 8080
+    nodePort: 30123
+NAME CLUSTER-IP EXTERNAL-IP PORT(S) AGE
+kubia-nodeport 10.111.254.223 <nodes> 80:30123/TCP 2m
+```
+node1IP:30123 -> 10.111.254.223:80 -> pod
+node2IP:30123 -> 10.111.254.223:80 -> pod
+
+#### What happens if nodeport is not specified? 
+It will assign one randomly.
+
+#### How to get the ip address of a node?
+```
+$ kubectl get nodes -o jsonpath='{.items[*].status.addresses[?(@.type=="ExternalIP")].address}'
+```
+
+#### What is the difference between Nodeport and LoadBalancer?
+LoadBalancer will provision a load balancer Level4, so from 1 external IP can reach the service. If the provider doesn't have LoadBalancer
+ implemented that will behave like NodePort
+No firewall rules need to be changed if using a Loadbalancer (nodeport needs rules) 
+```
+NAME CLUSTER-IP EXTERNAL-IP PORT(S) AGE
+kubia-loadbalancer 10.111.241.153 130.211.53.173 80:32143/TCP 1m
+```
+
+#### Is possible to reduce a hop when LoadBalancer?
+Yes, with externalTrafficPolicy: Local but you need to make sure that each node has a pod to connect, otherwise the connection will hang a the nodeport
+
+#### Is the client IP preserved into the hops?
+No, since SNAT is used to translate internal IPs. 
+It can be preserved if with externalTrafficPolicy: Local, since there's no translation once in the node. 
+
+#### What's the difference between LoadBalancer and Ingress?
+Load balancer is connecting to nodeports that connects to 1 service, meanwhile Ingress connects directly to multiple services (or maybe nodeports).
+*paths* are defined (more fine grained) and a domain needs to be declared (that binds to the CNAME)
+Ingress controllers on cloud providers (in GKE, for example) require the Ingress to point to a NodePort service. But that’s not a requirement of Kubernetes itself.
+
+#### Are ingress resources working out of the box? 
+No, it depends on the cloud provider.
+
+#### How does a request get resolved with ingress?
+1) Client ping DNS server to get the controller IP
+2) Ingress Controller match the host:xxx so can get the service
+3) Ther service will get the endpoints
+4) endpoints will give the pods that return the response
+```
+rules:
+-host: foo.example.com http:
+ paths:
+   - path: / 
+```
+Ingress can have multiple hosts and multiple paths
+
+#### Is possible to add TLS support on the ingress?
+Yes, using tls: instead of http: and adding the certificate as a secret.
+
+#### What is an headless service?
+It's a service that returns all the pod IPs instead of returning only the one for the lookup. It's possible setting *clusterIP: None*
+```
+$ kubectl exec dnsutils nslookup kubia-headless
+...
+Name: kubia-headless.default.svc.cluster.local 
+Address: 10.108.1.4
+Name: kubia-headless.default.svc.cluster.local 
+Address: 10.108.2.5
+```
+Returns all the A addresses, instead of only one. 
+#### How to run a pod on-fly?
+```
+kubectl run dnsutils --image=tutum/dnsutils --generator=run-pod/v1 --command -- sleep infinity
+```
+
+## Volumes
