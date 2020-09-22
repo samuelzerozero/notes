@@ -189,3 +189,6 @@ IfNotPresent | Image is pulled if it is not already present on the worker node. 
 
 #### What is a grece period when in the termination phase of a container?
 That's the time where the container will upgrade from SIGTERM to SIGKILL
+
+#### What does happen to a pod manually created if a node where is deployed fails? 
+It will disappear. In order to be managed you need to create Replication Controllers or deployments.
