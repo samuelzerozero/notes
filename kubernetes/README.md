@@ -232,6 +232,8 @@ It's a special ReplicaSet but it runs one pod matching the label for each node (
 #### Does a DeamonSet run on each node?
 By default, yes. However you can specify a node selector.
 
+## Jobs
+
 #### Is there a way to run a finite job?
 Yes, with Job. That can be defined like any other template.
 
