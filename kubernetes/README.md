@@ -190,5 +190,34 @@ IfNotPresent | Image is pulled if it is not already present on the worker node. 
 #### What is a grece period when in the termination phase of a container?
 That's the time where the container will upgrade from SIGTERM to SIGKILL
 
+#### What means if a liveness or readiness probe fails?
+For a liveness probe, giving up means the pod will be restarted. For a readiness probe, giving up means not routing traffic to the pod, but the pod is not restarted. Liveness and readiness probes can be used in conjunction. A probe has a number of configuration parameters to control its behaviour, like how often to execute the probe; how long to wait after starting the container to initiate the probe; the number of seconds after which the probe is considered failed; and how many times the probe can fail before giving up.
+
 #### What does happen to a pod manually created if a node where is deployed fails? 
 It will disappear. In order to be managed you need to create Replication Controllers or deployments.
+
+#### What does happen when a pod label is changed if managed by a replication controller?
+It will end up being manually managed, hence the controller will spin automatically another one with the right label.
+```
+$ kubectl get pods --show-labels
+$ kubectl label pod <nameOfPOd> type=special <- extra label, don't do anything
+$ kubectl label pod <nameOfPOd> app=foo --overwrite <- overwrite selector, pod disconnected from controller and created a new pod
+```
+#### What does happen when a replication controller change the selector?
+if there's no pod with labels that matches the new selector, it will recreate pods from scratch
+
+#### What does happen when a replication controller change the template?
+That will only be used for new span pods, won't modify existing.
+
+#### How can scale a replication controller?
+via command line 
+```
+$ kubectl scale rc kubia --replicas=3
+```
+or changing and applying the *replicas* in *replicas* and apply.
+
+#### What happens when deleted a replication controller?
+By default all the pods will get deleted also. To avoid that it's possible to add the flag
+```
+$ kubectl delete rc kubia --cascade=false
+```
