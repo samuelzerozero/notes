@@ -4,7 +4,7 @@ This is a list of kubernetes notes collected while try to figure out stuff about
 ### Table of Contents
 **[Setup](#setup)**<br>
 **[Pod and Containers Lifecycle](#pod-and-containers-lifecycle)**<br>
-**[ReplicationController, ReplicaSet, DeamonSet](#setup)**<br>
+**[ReplicationController, ReplicaSet, DeamonSet](#replicationcontroller,-replicaset,-deamonset)**<br>
 **[Jobs](#jobs)**<br>
 
 
