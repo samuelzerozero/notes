@@ -343,3 +343,26 @@ in reality can lose the last part *svc.cluster.local* and even the *namespace* i
 
 #### Why Ping doesn't work on a service IP?
 Because that's a vitual IP.
+
+#### What is an Endpoint?
+Endpoint is something inplicit that gets called when creating a service: It's a list of IP:ports associated with a name. If no selector on service, that won't be created. It's possible to create an endpoint manually/yaml type Endpoint. 
+```
+$ kubectl get endpoints
+```
+#### How would you connect a service with an external IP?
+Create a service without selectors and create an enpoint with the ips that corresponds to that name.
+
+#### How would you connect a service with an external DNS?
+Another easier way, is to create a service with spec type: ExternalName 
+```
+kind: Service
+metadata:
+    name: external-service 
+spec:
+    type: ExternalName
+    externalName: someapi.somecompany.com
+```
+with local fqdn you can reach curling external-service
+
+#### How to expose a service externally?
+
