@@ -737,4 +737,50 @@ Secrets are secured ConfigMaps. Kubernetes helps keep your Secrets safe by makin
  Also, on the nodes themselves, Secrets are always stored in memory and never written to physical storage, which would require wiping the disks after deleting the Secrets from them.
 ```
 $ kubectl get secrets 
+NAME                  TYPE                                  DATA      AGE
+default-token-cfee9 kubernetes.io/service-account-token 3 39d
+```
+
+#### What's the difference between stringData and data in Secrets?
+stringData is plain text, meanwhile data is Base64
+
+#### How to mount Secrets in Pods?
+Like configMaps: 
+```volumes:
+    - name: certs
+    secret:
+    secretName: fortune-https
+```
+or via env variables like in configmap
+```
+env:
+    - name: FOO_SECRET
+      valueFrom:
+        secretKeyRef:
+           name: fortune-https
+           key: foo
+```
+
+#### Where are Secret mounted?
+Secrets are mounted in memory (tmpfs)
+
+#### What's the best way to pass the secrets, mount or env var?
+Mounting. Since env vars sometimes can be dumped in logs, or child processes can inherit them exposing to extra security vulnerabilities.
+
+#### How to create commandline? There are different types?
+Yes, to create generic, or credentials for docker hub/registry.
+```
+$ kubectl create secret generic fortune-https --from-file=https.key --from-file=https.cert --from-file=foo
+```
+
+#### How to set the credential for a docker registry via Secrets? (INCOMPLETE - there's an easier way rather than specify every single pod)
+Having a file secret mounted on .dockercfg with:
+```
+$ kubectl create secret docker-registry mydockerhubsecret --docker-username=myusername --docker-password=mypassword --docker-email=my.email@provider.com
+```
+and using it in the pod.
+```
+spec:
+    imagePullSecrets:
+    - name: mydockerhubsecret
 ```
