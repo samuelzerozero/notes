@@ -9,7 +9,7 @@ This is a list of kubernetes notes collected while try to figure out stuff about
 **[Services](#services)**<br>
 **[Volumes](#volumes)**<br>
 **[ConfigMaps and Secrets](#configmaps-and-secrets)**<br>
-
+**[Metadata](#metadata)**<br>
 
 ## Setup
 
@@ -784,3 +784,49 @@ spec:
     imagePullSecrets:
     - name: mydockerhubsecret
 ```
+
+#### Metadata
+
+## What is the Downward Api?
+It's the api that contains all the metadata for the objects. It's in the Api Server. To get the api DNS:
+
+## How can I get those infos in a pod? Are updated on a change?
+a) Via environment variable using valueFrom: fieldRef: / resourceFieldRef: are not updated
+b) Mounting a volume downwardAPI are updated:
+```
+volumes:
+    - name: downward
+        downwardAPI:
+            items:
+                - path: "podName" fieldRef:
+                 fieldPath: metadata.name
+```
+c) Via the api using the *proxy* via the local machine
+```
+$ kubectl cluster-info
+$ curl https://192.168.99.100:8443 -k
+Unauthorized
+$ kubectl proxy
+Starting to serve on 127.0.0.1:8001
+```
+
+d) From a pod in the cluster manually with:
+* Find the location of the API server.
+```
+$ kubectl get svc kubernete <- via kubectl
+NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   42h
+root@curl:/# env | grep KUBERNETES_SERVICE <- in the pod (automatically variable injected by default)
+curl https://kubernetes <- DNS is already set for that
+```
+* Make sure you’re talking to the API server and not something impersonating it and Authenticate with the server; otherwise it won’t let you see or do anything.
+```
+$ ls /var/run/secrets/kubernetes.io/serviceaccount
+$ export CURL_CA_BUNDLE=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt <-- or set --cacert so we know it's the right server
+$ export TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+$ curl -H "Authorization: Bearer $TOKEN" https://kubernetes
+$ export NS=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace) <- get the own namespace
+$ curl -H "Authorization: Bearer $TOKEN" https://kubernetes/api/v1/namespaces/$NS/pods
+```
+e) From the pod using an *ambassador container* (a proxy that wraps TLS and authentication)
+f) Use client libraries (java, python, etc)
