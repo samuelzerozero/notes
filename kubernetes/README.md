@@ -8,6 +8,7 @@ This is a list of kubernetes notes collected while try to figure out stuff about
 **[Jobs](#jobs)**<br>
 **[Services](#services)**<br>
 **[Volumes](#volumes)**<br>
+**[ConfigMaps and Secrets](#configmaps-and-secrets)**<br>
 
 
 ## Setup
@@ -48,6 +49,11 @@ $ kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | a
 ```
 
 ## Kubectl commands and Containers
+
+#### How to see system pods?
+```
+$ kubectl get pod --namespace kube-system
+```
 
 #### How to quickly create a deployment object via command line?
 You now have a running application that is represented by a Deployment and exposed to the world by a Service object. Then magically scaled-out:
@@ -447,7 +453,288 @@ Address: 10.108.2.5
 Returns all the A addresses, instead of only one. 
 #### How to run a pod on-fly?
 ```
-kubectl run dnsutils --image=tutum/dnsutils --generator=run-pod/v1 --command -- sleep infinity
+$ kubectl run dnsutils --image=tutum/dnsutils --generator=run-pod/v1 --command -- sleep infinity
 ```
 
 ## Volumes
+
+#### How does a directory can be mounted in the context of a pod?
+In the pod 2 things needs to be defined: volumeMount for the container, and a volume for the pod.
+```
+- image: nginx:alpine
+  name: web-server 
+  volumeMounts:
+    - name: html <- ref of the volume delcalred
+      mountPath: /usr/share/nginx/html
+...
+volumes: <- declaring volumes
+- name: html
+  emptyDir: {}
+```
+
+#### What are the available volume types?
+Name | Description
+------------ | -------------
+emptyDir | A simple empty directory used for storing transient data.
+hostPath | Used for mounting directories from the worker node’s filesystem into the pod.
+gitRepo | A volume initialized by checking out the contents of a Git repository.
+nfs | An NFS share mounted into the pod.
+gcePersistentDisk | (Google Compute Engine Persistent Disk)
+awsElastic-BlockStore | (Amazon Web Services Elastic Block Store Volume)
+azureDisk | (Microsoft Azure Disk Volume)
+cinder, cephfs, iscsi, flocker, glusterfs, quobyte, rbd, flexVolume, vsphereVolume, photonPersistentDisk, scaleIO | Used for mounting other types of network storage.
+configMap, secret, downwardAPI | Special types of volumes used to expose certain Kubernetes resources and cluster information to the pod.
+persistentVolumeClaim | A way to use a pre-or dynamically provisioned persistent storage.
+
+#### What are the available medium of emptyDir?
+Memory or Disk
+```
+volumes:
+- name: html
+emptyDir:
+      medium: Memory
+```
+
+#### How long the emptyDir last? 
+It's all about the pod lifecycle. when that gets deleted, that goes away.
+
+#### What is doing gitRepo volume?
+It's cloning a git repo a start time
+```
+volumes:
+- name: html
+  gitRepo:
+    repository: https://github.com/luksa/kubia-website-example.git revision: master
+    directory: .
+```
+#### Is gitRepo able to clone a private repo?
+No. Use the git sync sidecar.
+
+
+#### Is gitRepo in sync?
+No. The only way to resync is deleting the pod and starting a new one or adding a sidecar that sync the cloned dir.
+
+#### What is an hostPath volume? How long does it last? For what is used?
+It's a mount of the node that is hosting the pod. That stays even after the pod lifecycle end. That is used for example for fluentd (logs for the node)
+
+#### Would you use the volume hostPath for the database?
+No. Since if the pod gets deleted and rescheduled on another node, the db would serve empty.
+
+#### How can you abstract the logical part of the mounts with the specifc underlying technology?
+Use PersistentVolumes and PersistentVolumeClaims, so the implemenation is decoupled:
+```
+kind: PersistentVolume
+metadata:
+  name: mongodb-pv
+spec:
+  capacity: 
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /tmp/mongodb
+```
+declare the PersistentVolumeClaim so something can match the requirements:
+```
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-pvc 
+spec:
+  resources:
+    requests:
+      storage: 1Gi
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: ""
+```
+
+And then mount the persistentVolumeClaim to the pod
+```
+kind: Pod
+spec:
+ containers:
+   ...
+   volumeMounts:
+   - name: mongodb-data
+     mountPath: /data/db
+...
+ volumes:
+ - name: mongodb-data
+   persistentVolumeClaim:
+   claimName: mongodb-pvc
+```
+
+#### How to get the informations for persistent volumes?
+Creating a PersistentVolume mongodb-pv
+```
+$ kubectl get pv
+NAME         CAPACITY   RECLAIMPOLICY   ACCESSMODES   STATUS      CLAIM
+mongodb-pv 1Gi Retain RWO,ROX Available
+```
+After the creation of PersistentVolumeClaim mongodb-pvc that matches the requirements 
+```
+NAME         CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                 STORAGECLASS   REASON   AGE
+mongodb-pv   1Gi        RWO,ROX        Retain           Bound    default/mongodb-pvc                           5m57s
+```
+
+#### What RWO,ROX,RWX mean when declaring a PersistentVolume?
+*RWO, ROX, and RWX pertain to the number of worker nodes that can use the volume at the same time, not to the number of pods*
+RWO—ReadWriteOnce—Only a single node can mount the volume for reading and writing.
+ROX—ReadOnlyMany—Multiple nodes can mount the volume for reading.
+RWX—ReadWriteMany—Multiple nodes can mount the volume for both reading
+and writing.
+
+#### What happens to the PersistentVolume when the the PersistenVolumeClaim is removed?
+It depends on the *persistentVolumeReclaimPolicy* set on the PersistentVolume
+Retain (default for manually created PersistentVolumes),
+Recycle (deprecated),
+Delete (default for dynamically provisioned PersistentVolumes)
+
+#### What is a StorageClass?
+Instead of manually create PersistentVolumes, an admin can define a StorageClass that acts as a template to create a PersistenVolume,
+ whenever a PersistentVolumeClaim is requested.
+```
+apiVersion: storage.k8s.io/v1 kind: StorageClass
+kind: StorageClass
+metadata:
+name: fast
+provisioner: kubernetes.io/gce-pd 
+parameters:
+ type: pd-ssd
+ zone: europe-west1-b 
+```
+and the PersistentVolumeClaim can just refer storageClassName: fast
+```
+$ kubectl get sc
+NAME TYPE
+fast kubernetes.io/gce-pd
+standard (default) kubernetes.io/gce-pd
+```
+
+#### Are PersistentVolumes and StorageClass namespaced?
+No.
+
+#### Is there a default StorageClass?
+Yes, defined by the provisioner
+```
+$ kubectl get sc standard -o yaml
+```
+The default storage class is what’s used to dynamically provision a PersistentVolume if the PersistentVolumeClaim doesn’t explicitly say which storage class to use.
+
+#### What does it mean if a PersistentVolumeClaim specify storageClassName: ""? WERID
+If you hadn’t set the storageClassName attribute to an empty string, the dynamic volume provisioner would have provisioned a new PersistentVolume, despite there being an appropriate pre-provisioned PersistentVolume.
+
+## ConfigMaps and Secrets
+
+#### What are the known methods to pass configurations to the contianer?
+a) Passing command-line arguments to containers
+b) Setting custom environment variables for each container
+b) Mounting configuration files into containers through a special type of volume
+
+#### Is it possible to override ENTRYPOINT and CMD in a pod? Can be changed after?
+Yes, with command: and args:. Can't be updated after the pod is created
+
+#### How to define evnironment variables?
+```
+containers:
+- image: luksa/fortune:env
+  env:
+    - name: INTERVAL
+      value: "30"
+```
+
+#### Can I refer to previously declared env in the env?
+Yes      
+```     
+  env:
+  - name: FIRST_VAR
+  value: "foo"
+  - name: SECOND_VAR
+  value: "$(FIRST_VAR)bar"
+```
+
+#### What is configMap?
+Is a set of key values that are stored in k8s, and can be referenced as environment variable. 
+Can be different in different environment making the pods agnostic.
+
+#### Howo to create one via command line?
+```
+$ kubectl create configmap fortune-config --from-literal=sleep-interval=25 --from-literal=bar=baz
+$ kubectl get configmap fortune-config -o yaml
+...
+data:
+  sleep-interval: "25" 
+kind: ConfigMap
+...
+```
+
+#### Can I create a ConfigMap from file?
+With all the variants:
+```
+$ kubectl create configmap my-config 
+    --from-file=customkey=config-file.conf <- assign key customkey=content of file
+    --from-file=foo.json  <- foo.json=content of
+    --from-file=config-opts/ <- each file name is the key and the content of the file is the value 
+    --from-literal=some=thing
+```
+
+#### How to refer to a ConfigMap value in a pod?
+In env using *valueFrom* instead of *value*
+```
+- name: INTERVAL
+  valueFrom:
+    configMapKeyRef:
+       name: fortune-config 
+       key: sleep-interval
+```
+
+#### What happens if the pod start referring to a ConfigMap that doesn't exist?
+Unless configMapKeyRef.optional: true by default the pod will error. It will start automatically when the config is created
+
+
+#### Can I pass all the envorinment variables at once?
+Yes, with envFrom. Can even use a prefix to prepend to the key if needed.
+
+#### What happens if the env variable is not valid like CONFIG_FOO-BAR?
+It's skipped, and an event is recorded to inform the action.
+
+#### How to mount a configMap to a directory? Can restrict a file only?
+Yes
+```
+  volumeMounts:
+     - name: config
+       mountPath: /usr/share/nginx/html
+       readOnly: true
+ 
+  volumes:
+  - name: config
+    configMap:
+      name: fortune-config
+```
+Yes, can be restricted with volumes with configMap set with
+```
+    items:
+    - key: my-nginx-config.conf
+      path: gzip.conf
+```
+Or without overriding directories use mountPath:myconfig.conf and subPath: myconfig.conf
+
+#### Can set the permissions?
+yes defaultMode: "6600"
+
+#### What happens if a subpath file is mounted and the configmap changes?
+One big caveat relates to updating ConfigMap-backed volumes. If you’ve mounted a single file in the container instead of the whole volume, the file will not be updated! 
+At least, this is true at the time of writing this chapter.
+You can use otherwise mount all into another directory and create a symlink instead.
+
+#### If update a configmap, when it's possible to see the new values?
+If the app does support reloading, modifying the ConfigMap usually isn’t such a big deal, but you do need to be aware that because files in the ConfigMap volumes aren’t updated synchronously across all running instances, the files in individual pods may be out of sync for up to a whole minute. 
+
+#### What are Secrets?
+Secrets are secured ConfigMaps. Kubernetes helps keep your Secrets safe by making sure each Secret is only distributed to the nodes that run the pods that need access to the Secret.
+ Also, on the nodes themselves, Secrets are always stored in memory and never written to physical storage, which would require wiping the disks after deleting the Secrets from them.
+```
+$ kubectl get secrets 
+```
