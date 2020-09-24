@@ -1081,6 +1081,7 @@ Yes, can use some techniques of using sidecars for leader-election (having a dor
 https://github.com/kubernetes-retired/contrib/tree/master/election
 
 #### What are the limits of making Control Plane components highly available?
+Component | Description
 ------|--------
 etcd | best partition - use 3 (1 failure tollerance),5,7 nodes. More than 7 is impacting performance
 server Api | stateless, can horizontally scale
@@ -1088,4 +1089,27 @@ Controller manager | 1 active (elected leader), the other dormants
 Scheduler | 1 active (elected leader), the other dormants
 
 ## Securing the Api Server
+
+## What happens when trying to connect to api server?
+The connection run through the first matching Authentication plugin, then authorization. 
+That can be obtained from the client certificate,an authentication token passed in an HTTP header,Basic HTTP authentication, or others.
+
+## What type of users are in kubernetes?
+1) Actual humans (users)
+
+2) Pods (more specifically, applications running inside them)
+
+## What is a serivce account?
+Pods have information stored in resources ServiceAccount, as a mechanism for authentication for non human.
+
+## What are groups, how that works in k8s?
+It's several users grouped. The group is a string returned by the controller or system groups
+
+Name | Description
+------|--------
+system:unauthenticated |  used for requests where none of the authentication plugins could authenticate the client.
+system:authenticated |   automatically assigned to a user who was authenticated successfully.
+system:serviceaccounts | encompasses all ServiceAccounts in the system.
+system:serviceaccounts:<namespace> | includes all ServiceAccounts in a specific namespace.
+
 
