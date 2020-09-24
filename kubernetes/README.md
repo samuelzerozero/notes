@@ -12,6 +12,8 @@ This is a list of kubernetes notes collected while try to figure out stuff about
 **[Metadata](#metadata)**<br>
 **[Deployments](#deployments)**<br>
 **[StatefulSets](#statefulsets)**<br>
+**[Architecture](#architecture)**<br>
+**[Securing the Api Server](#securing-the-api-server)**<br>
 
 ## Setup
 
@@ -1012,3 +1014,78 @@ Yes, that will dispatch round
 
 #### can group items in the yaml?
 Yes also with kind: List or ---
+
+## Architecture
+
+#### Which are the components of k8s?
+The Kubernetes Control Plane and The (worker) nodes.
+
+#### What are the components of the control plane?
+a) The etcd distributed persistent storage
+b) The API server
+c) The Scheduler
+d) The Controller Manager
+
+#### What are the components of the worker nodes?
+a) The Kubelet
+b) The Kubernetes Service Proxy (kube-proxy)
+c) The Container Runtime (Docker, rkt, or others)
+
+#### What are the add-on components?
+a) The Kubernetes DNS server
+b) The Dashboard
+c) An Ingress controller
+d) Heapster
+e) The Container Network Interface network plugin 
+
+#### How the various components communicate?
+**Everything goes through the API server**. Basically all the components watch that as a single source of truth and react accordingly incase of state change.
+
+#### How to get the healcheck of the components via command line?
+```
+$ kubectl get componentstatuses
+$ kubectl get po -o custom-columns=POD:metadata.name,NODE:spec.nodeName --sort-by spec.nodeName -n kube-system
+```
+
+#### How the control pane elements can be replicated?
+Api servers can be deployed and active in multiple locations. Schedulers and Control manager can be replicated, but only one active at time.
+
+#### How works ETCD replication?
+In case of network split, the majority accept updates and the other is blocked. RAFT consensus algorithm.
+in Kubernetes, the only etcd client is the API server, but there may be multiple instances
+
+#### What is admission control in Api Server?
+If the request is trying to create, modify, or delete a resource, the request is sent through Admission Control. 
+It doesn't go through if just tries to read.
+
+#### What a Kubelet does?
+In a nutshell, the Kubelet is the component responsible for everything running on a worker node. Its initial job is to register the node it’s running on by creating a Node resource in the API server. 
+Then it needs to continuously monitor the API server for Pods that have been scheduled to the node, and start the pod’s containers.
+The Kubelet is also the component that runs the container liveness probes, restart- ing containers when the probes fail. 
+Lastly, it terminates containers when their Pod is deleted from the API server and notifies the server that the pod has terminated
+
+#### Is kube-proxy really a proxy?
+No, it was initially but now it only takes care to modify ipTables to have a direct link.
+
+#### What is a pause container?
+It's the infrastructure container that spins when spinning a pod.
+
+#### Is there NAT happening between pods and nodes?
+No, It's handled via Container Network Interface (CNI)  plugin. Only for services outside, since they need the public ip translation.
+
+#### How services gets configured by which component?
+It's the kube-proxy that takes care of that. Are virtual addresses that just return other ips. 
+
+#### Can I have high availability with scaling=1?
+Yes, can use some techniques of using sidecars for leader-election (having a dormant replica, ready to go if the other pods fails)
+https://github.com/kubernetes-retired/contrib/tree/master/election
+
+#### What are the limits of making Control Plane components highly available?
+------|--------
+etcd | best partition - use 3 (1 failure tollerance),5,7 nodes. More than 7 is impacting performance
+server Api | stateless, can horizontally scale
+Controller manager | 1 active (elected leader), the other dormants
+Scheduler | 1 active (elected leader), the other dormants
+
+## Securing the Api Server
+
