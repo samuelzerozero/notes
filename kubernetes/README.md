@@ -14,6 +14,7 @@ This is a list of kubernetes notes collected while try to figure out stuff about
 **[StatefulSets](#statefulsets)**<br>
 **[Architecture](#architecture)**<br>
 **[Securing the Api Server](#securing-the-api-server)**<br>
+**[Computational Resources Management](#computational-resources-management)**<br>
 
 ## Setup
 
@@ -1090,19 +1091,19 @@ Scheduler | 1 active (elected leader), the other dormants
 
 ## Securing the Api Server
 
-## What happens when trying to connect to api server?
+#### What happens when trying to connect to api server?
 The connection run through the first matching Authentication plugin, then authorization. 
 That can be obtained from the client certificate,an authentication token passed in an HTTP header,Basic HTTP authentication, or others.
 
-## What type of users are in kubernetes?
+#### What type of users are in kubernetes?
 1) Actual humans (users)
 
 2) Pods (more specifically, applications running inside them)
 
-## What is a serivce account?
+#### What is a serivce account?
 Pods have information stored in resources ServiceAccount, as a mechanism for authentication for non human.
 
-## What are groups, how that works in k8s?
+#### What are groups, how that works in k8s?
 It's several users grouped. The group is a string returned by the controller or system groups
 
 Name | Description
@@ -1111,5 +1112,233 @@ system:unauthenticated |  used for requests where none of the authentication plu
 system:authenticated |   automatically assigned to a user who was authenticated successfully.
 system:serviceaccounts | encompasses all ServiceAccounts in the system.
 system:serviceaccounts:<namespace> | includes all ServiceAccounts in a specific namespace.
+
+#### How does it work an authentication for a pod
+authenticate with a secret mounted on
+```
+/var/run/secrets/kubernetes.io/serviceaccount/token
+```
+and return a username like, that is then passed to the authorisation controller:
+```
+system:serviceaccount:<namespace>:<service account name>
+$ kubectl get sa
+NAME      SECRETS   AGE
+default   1         2d22h
+```
+
+#### Can a pod  use a ServiceAccount from the another namespace?
+No
+
+### Why to create more service accounts apart from the default one?
+Bacause of security, restricting pods that don't need metadata, modify objects, read etc.
+
+#### How to create a service account?
+```
+$ kubectl create serviceaccount foo
+$ kubectl describe sa foo
+$ kubectl describe secret foo-token-qzq7j <- the secret contains ca,namespace and token 
+```
+or on yaml
+```
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: my-service-account 
+    imagePullSecrets: 
+      - name: my-dockerhub-secret
+```
+
+#### How to create a RBAC autorisation?
+Creating a resource Roles and ClusterRoles,RoleBindings and ClusterRoleBindings (the difference bewtween roles and clusterRoles is that the first is namespaced)
+RoleBinding can bind a clusterRole.
+
+#### How to create/get a pod for a different namespace?
+Same commands as usual, but specifying -n <namespace>. Otherwise is "default"
+```
+$ kubectl create ns foo
+$ kubectl get po -n foo
+$ kubectl exec -it test-7b4bb6b9ff-47scj -n foo sh
+```
+https://github.com/docker/for-mac/issues/3694
+#### How to create a Role
+```
+kind: Role
+metadata:
+  namespace: foo
+name: service-reader 
+ rules:
+  - apiGroups: [""]
+    verbs: ["get", "list"] 
+    resources: ["services"]
+
+$ kubectl create rolebinding test --role=service-reader --serviceaccount=foo:default -n foo
+
+kind: RoleBinding
+metadata:
+name: test namespace: foo
+roleRef:
+ apiGroup: rbac.authorization.k8s.io 
+ kind: Role
+ name: service-reader
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: foo
+```
+
+#### How to bind a role to a user instead or a group?
+To bind a Role to a user instead of a ServiceAccount, use the --user argument to specify the username. To bind it to a group, use --group
+
+#### How many service accounts should be created?
+It’s a good idea to create a specific ServiceAccount for each pod (or a set of pod replicas) and then associate it with a tailormade Role (or a ClusterRole) through a RoleBinding (not a ClusterRoleBinding,
+ because that would give the pod access to resources in other namespaces, which is probably not what you want)
+Don’t add all the necessary permissions required by both pods to the default ServiceAccount in the namespace.
+
+#### How to mitigate if app is compromised?
+Your aim is to reduce the possibility of an intruder getting hold of your cluster. 
+Today’s complex apps contain many vulnerabilities. You should expect unwanted persons to eventually get their hands on the ServiceAccount’s authentication token,
+ so you should always constrain the ServiceAccount to prevent them from doing any real damage.
+ 
+#### Can you use the pod with a real host network of the node? Can I bind a real port?
+Yes, hostNetwork: true. If you just need the port, can specify hostPort to just bind the real port rather than the whole network namespace.
+
+#### What is the container security context?
+Besides allowing the pod to use the host’s Linux namespaces, other security-related features can also be configured on the pod and its container through the security- Context properties, which can be specified under the pod spec directly and inside the spec of individual containers.
+Specify the user (the user’s ID) under which the process in the container will run.
+ Prevent the container from running as root (the default user a container runs as is usually defined in the container image itself, so you may want to prevent
+containers from running as root).
+ Run the container in privileged mode, giving it full access to the node’s kernel.
+ Configure fine-grained privileges, by adding or dropping capabilities—in con-
+trast to giving the container all possible permissions by running it in privi-
+leged mode.
+ Set SELinux (Security Enhanced Linux) options to strongly lock down a
+container.
+ Prevent the process from writing to the container’s filesystem.
+
+#### How Running a container as a specific user? 
+```
+spec:
+containers:
+   securityContext:
+      runAsUser: 405
+```
+
+#### How avoid a container as a non root user? 
+```
+spec:
+containers:
+   securityContext:
+      runAsNonRoot: true
+```
+
+#### How run a container as a privileged?
+securityContext.privileged: true 
+
+#### How ro fine grain add/remove capabilities?
+Get the capabilities bur remove the linux previx *CAP_* when specified:
+```
+capabilities:
+   add:
+     - SYS_TIME
+    drop:
+     - CHOWN
+```
+#### How to make the fs readonly?
+readOnlyRootFilesystem: true. Still can mount a volume to allow rw
+
+#### Can I set the securityContext to a pod level as well?
+Yes, at pod.spec.securityContext
+
+#### How to share a mounted volume between 2 containers running with different userIDs?
+spec.securityContext.fsGroup and spec.securityContext.supplementalGroups. The fs group is the one that will be used for the FS, additional the others
+
+#### How is possible to centralise the restrictions?
+creating PodSecurityPolicy:
+ Whether a pod can use the host’s IPC, PID, or Network namespaces  Which host ports a pod can bind to
+ What user IDs a container can run as
+ Whether a pod with privileged containers can be created
+ Which kernel capabilities are allowed, which are added by default and which are always dropped
+ What SELinux labels a container can use
+ Whether a container can use a writable root filesystem or not
+ Which filesystem groups the container can run as
+ Which volume types a pod can use
+```
+kind: PodSecurityPolicy
+metadata:
+  name: default
+spec:
+  hostIPC: false
+  hostPID: false
+  hostNetwork: false
+  hostPorts:
+  - min: 10000
+    max: 11000
+  - min: 13000
+    max: 14000
+  privileged: false
+  readOnlyRootFilesystem: true
+  runAsUser:
+    rule: RunAsAny
+  fsGroup:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: RunAsAny
+  seLinux:
+    rule: RunAsAny
+  volumes:
+  - '*'
+```
+
+#### Can restrict ranges of ids, guids etc on PodSecurityPolicy?
+Yes,   rule: MustRunAs ranges:min/max
+
+#### Can constraint the type of volume that must be used on PodSecurityPolicy?
+Yes
+
+#### Can assign PodSecurityPolicy to ClusteRole to users?
+Yes, 
+
+#### Can Isolate the pod network?
+Yes, with NetworkPolicy
+```
+kind: NetworkPolicy
+metadata:
+name: postgres-netpolicy spec:
+  podSelector:
+    matchLabels:
+      app: database
+  ingress:
+- from:
+- podSelector:
+        matchLabels:
+          app: webserver
+ports:
+- port: 5432
+```
+
+#### Can Isolate between namespaces?
+Yes
+```
+spec:
+  podSelector:
+    matchLabels:
+app: shopping-cart ingress:
+- from:
+- namespaceSelector:
+        matchLabels:
+          tenant: manning
+ports:
+- port: 80
+```
+
+#### Can limit outbound egress?
+Yes
+
+#### Can limit ip ranges?
+yes, for example with ingress.ipblock.cidr: 192.168.1.0/24
+
+## Computational Resources Management
+
+
 
 
