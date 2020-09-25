@@ -1339,6 +1339,51 @@ yes, for example with ingress.ipblock.cidr: 192.168.1.0/24
 
 ## Computational Resources Management
 
+#### Why if there's available 2CPUs in a node I won't be able to place 2 containers with 1CPU requested?
+Because there are other system pods.
 
 
+#### How to define what to kill first if used the total of shared resources?
+assign Quality of Service (QoS) classes
+BestEffort (the lowest priority)  Burstable
+ Guaranteed (the highest)
 
+#### Can create limits per pod namespace?
+LimitRange, that extends to volumeclaims and not only memory and cpu
+```
+kind: LimitRange
+metadata:
+  name: example
+spec:
+limits:
+- type: Pod
+    min:
+      cpu: 50m
+      memory: 5Mi
+max: cpu: 1
+memory: 1Gi
+- type: Container defaultRequest:
+type: PersistentVolumeClaim min:
+    storage: 1Gi
+  max:
+    storage: 10Gi
+A LimitRange can also set the minimum and maximum amount of storage a PVC can request.
+ 
+```
+
+#### What are ResourceQuota?
+A ResourceQuota limits the amount of computational resources the pods and the amount of storage PersistentVolumeClaims in a namespace can consume. It can also limit the number of pods, claims, and other API objects users are allowed to create inside the namespace. Because you’ve mostly dealt with CPU and memory so far, let’s start by looking at how to specify quotas for them.
+
+#### How to set the right quotas?
+Monitoring, collecting stats using Heapster
+
+#### How heapster works?
+Is an additional component that is getting info from the cAdvisor (a component of Kubelet)
+
+#### How to install Heapster?
+TO DO, not installed on docker for desktop mac. Some clooud providers by default.
+```
+$ kubectl top node
+```
+#### What to use to view the data collected?
+InfluxDb (time series db) and Grafana (analitics and visualization)
